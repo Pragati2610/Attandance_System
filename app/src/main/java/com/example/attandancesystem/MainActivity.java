@@ -97,7 +97,6 @@ public class MainActivity extends AppCompatActivity {
         MyDialog dialog = new MyDialog();
         dialog.show(getSupportFragmentManager(),MyDialog.CLASS_ADD_DIALOG);
         dialog.setListener((className,secName)->addClass(className,secName));
-
     }
 
     private void addClass(String className, String secName) {

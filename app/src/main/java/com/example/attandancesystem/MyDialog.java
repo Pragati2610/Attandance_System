@@ -20,7 +20,7 @@ public class MyDialog extends DialogFragment {
     public static final String CLASS_ADD_DIALOG="addClass";
     public static final String CLASS_UPDATE_DIALOG="updateClass";
     public static final String STUDENT_ADD_DIALOG="addStudent";
-    public static final String STUDENT_UPDATE_DIALOG = "UpdateStudent";
+    public static final String STUDENT_UPDATE_DIALOG="UpdateStudent";
 
     private onClickListener listener;
     private int roll;
@@ -159,7 +159,7 @@ public class MyDialog extends DialogFragment {
         Button cancel = view.findViewById(R.id.btn_cancel);
         Button add = view.findViewById(R.id.btn_add);
 
-        cancel.setOnClickListener(V-> dismiss());
+        cancel.setOnClickListener(V->dismiss());
         add.setOnClickListener(V-> {
             String className = class_edt.getText().toString();
             String secName = section_edt.getText().toString();

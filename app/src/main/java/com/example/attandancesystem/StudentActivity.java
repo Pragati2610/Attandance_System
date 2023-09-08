@@ -16,6 +16,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class StudentActivity extends AppCompatActivity {
 
@@ -28,20 +29,25 @@ public class StudentActivity extends AppCompatActivity {
     private RecyclerView.LayoutManager layoutManager;
     private ArrayList<StudentItem> studentItems = new ArrayList<>();
     private  DbHelper dbHelper;
-    private int cid;
+    private long cid;
+    private MyCalendar myCalendar;
+    private TextView subtitle;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_student);
 
+        myCalendar = new MyCalendar();
         toolbar = findViewById(R.id.toolbar);
+        dbHelper = new DbHelper(this);
 
         Intent intent = getIntent();
         className = intent.getStringExtra("className");
         section = intent.getStringExtra("section");
         position = intent.getIntExtra("position",-1);
-        cid = intent.getIntExtra("cid", (int) -1);
+        cid = intent.getLongExtra("cid", -1);
+
         setToolbar();
         loadData();
 
@@ -52,17 +58,16 @@ public class StudentActivity extends AppCompatActivity {
         studentAdapter = new StudentAdapter(this,studentItems);
         recyclerView.setAdapter(studentAdapter);
         studentAdapter.setOnItemClickListener(position->changeStatus(position));
-        dbHelper = new DbHelper(this);
-
+        loadStatusData();
     }
 
     private void loadData() {
         Cursor cursor = dbHelper.getStudentTable(cid);
         studentItems.clear();
         while (cursor.moveToNext()){
-            long sid = cursor.getLong(cursor.getColumnIndex(DbHelper.S_ID));
-            int roll = cursor.getInt(cursor.getColumnIndex(DbHelper.STUDENT_ROLL_KEY));
-            String studentName = cursor.getString(cursor.getColumnIndex(DbHelper.STUDENT_NAME_KEY));
+            @SuppressLint("Range") long sid = cursor.getLong(cursor.getColumnIndex(DbHelper.S_ID));
+            @SuppressLint("Range") int roll = cursor.getInt(cursor.getColumnIndex(DbHelper.STUDENT_ROLL_KEY));
+            @SuppressLint("Range") String studentName = cursor.getString(cursor.getColumnIndex(DbHelper.STUDENT_NAME_KEY));
             studentItems.add(new StudentItem(sid,roll,studentName));
         }
         cursor.close();
@@ -80,23 +85,56 @@ public class StudentActivity extends AppCompatActivity {
 
     private void setToolbar() {
         TextView title =findViewById(R.id.title_toolbar);
-        TextView subtitle = findViewById(R.id.subtitle_toolbar);
+        subtitle = findViewById(R.id.subtitle_toolbar);
         ImageButton back = findViewById(R.id.back);
         ImageButton save =findViewById(R.id.save);
+        save.setOnClickListener(V->saveStatus());
 
         title.setText(className);
-        subtitle.setText(section);
+        subtitle.setText(section+" | "+myCalendar.getDate());
 
         back.setOnClickListener(v->onBackPressed());
         toolbar.inflateMenu(R.menu.student_menu);
         toolbar.setOnMenuItemClickListener(MenuItem->onMenuItemClick(MenuItem));
     }
 
+    private void saveStatus() {
+        for(StudentItem studentItem : studentItems){
+            String status = studentItem.getStatus();
+            if(status!="P") status = "A";
+            long value = dbHelper.addStatus(studentItem.getSid(),myCalendar.getDate(),status);
+
+            if(value==-1) dbHelper.updateStatus(studentItem.getSid(),myCalendar.getDate(),status);
+        }
+    }
+    private void loadStatusData(){
+        for(StudentItem studentItem : studentItems) {
+            String status = dbHelper.getStatus(studentItem.getSid(),myCalendar.getDate());
+            if(status!=null) studentItem.setStatus(status);
+            else studentItem.setStatus("");
+        }
+        studentAdapter.notifyDataSetChanged();
+    }
+
     private boolean onMenuItemClick(MenuItem menuItem) {
         if(menuItem.getItemId()==R.id.add_student){
             showAddStudentDialog();
+        }else if(menuItem.getItemId()==R.id.show_calendar){
+            showCalendar();
         }
         return true;
+    }
+
+    private void showCalendar() {
+        MyCalendar myCalendar = new MyCalendar();
+        myCalendar.show(getSupportFragmentManager(),"");
+        myCalendar.setOnCalendarClickListener(this::onCalendarClicked);
+    }
+
+    private void onCalendarClicked(int year, int month, int day) {
+        myCalendar.setDate(year, month, day);
+        subtitle.setText(section+" | "+myCalendar.getDate());
+        loadStatusData();
     }
 
     private void showAddStudentDialog() {
